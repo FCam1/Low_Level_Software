@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#include "variables.h"
+#include "../STM32/test_general/variables.h"
 #include <inttypes.h>
 
 //fonctions

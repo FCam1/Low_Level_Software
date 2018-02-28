@@ -2,10 +2,6 @@
 #define _MODULE_VAR_H
 
 #include <stdint.h>
-//------------------------MACROS---------------------
-#define f_MSB(var)  ((var) >>  8)
-#define f_LSB(var)  ((var) & 0x00FF)
-
 
 ////dans .c: #include "variables.h"
 //------------------------IMU---------------------
@@ -114,15 +110,15 @@ uint16_t rXmR ;
 uint16_t rXmL ;
 
 //IMU
-//uint8_t rXrate;
-//uint8_t rYrate;
-//uint8_t rZrate;
-//uint8_t rXacc;
-//uint8_t rYacc;
-//uint8_t rZacc;
-//uint8_t rXmag;
-//uint8_t rYmag;
-//uint8_t rZmag;
+float   rXrate_scaled;
+float   rYrate_scaled;
+float   rZrate_scaled;
+float   rXacc_scaled;
+float   rYacc_scaled;
+float   rZacc_scaled;
+float   rXmag_scaled;
+float   rYmag_scaled;
+float   rZmag_scaled;
 
 uint8_t DIAGNOSTIC_STATUS;
 
