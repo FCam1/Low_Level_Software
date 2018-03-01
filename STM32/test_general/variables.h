@@ -30,7 +30,7 @@
 //------------------Definition Baudrate --------------------
 #define BAUD_AX                 1000000 
 #define BAUD_XM                 1000000
-#define BAUD_ODRIVE           115200
+#define BAUD_ODRIVE          115200
 //------------------SPI --------------------
 #define SIZE_BUFFER          12
 //------------------Definition des Pins --------------------
@@ -44,7 +44,7 @@
 #define AX_LEFT     2     
 #define XM_RIGHT    1
 #define XM_LEFT     2 
-#define ALLXM       254 // Broadcast ID
+#define ALL       254 // Broadcast ID
 
 //------------------Definition des Variables--------------------
 // Variables "write" to send over SPI
