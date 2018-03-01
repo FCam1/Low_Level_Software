@@ -2,10 +2,10 @@
 #include <time.h>
 #include "variables.h"
 
+//macro
+#define lowPin()     (digitalWrite(Cs_PIN, LOW))
+#define highPin()     (digitalWrite(Cs_PIN, HIGH))
 
-
-//uint8_t rbuffer.[22];
-//uint8_t  RxBuffer[12];
 //structures
 struct TrameWrite wbuffer;
 struct TrameWrite* ptr_wbuffer;
@@ -17,8 +17,6 @@ struct TrameRead* ptr_rbuffer;
 //----------------------DYNAMIXEL AX------------------------
 //-----------------------------------------------------------
 #include <SavageDynamixelSerial_Upgraded.h> ///ATENTION SERIAL 3 || Tx, Rx pins have to be modified in DynamixelSerial_Modified.cpp ||
-
-
 
 //-----------------------------------------------------------
 //----------------------DYNAMIXEL XM------------------------
@@ -129,16 +127,18 @@ void loop()
 //  rOdR = 1234 ; //position angulaire ODrive
 //  rOdL = 9999 ; //position angulaire ODrive
 
-while(1)
-{
+//while(1)
+//{
     SPI_2.transferSlave(((uint8_t*)ptr_wbuffer), ((uint8_t*)ptr_rbuffer), SIZE_BUFFER);  //To Raspberry
+
+
   
     //-------------------------DYNAMIXEL-------------------------------
     //-----------------------------------------------------------
     //AX 
 //    Serial.print(wbuffer.wOdR);   Serial.print(" ");
 //    Serial.print(wbuffer.wOdL); Serial.print(" ");
-//    Serial.print(wbuffer.wAxR);Serial.print(" ");
+//    Serial.print("RECU    ");  Serial.print(wbuffer.wAxR);Serial.println(" ");
 //    Serial.print(wbuffer.wAxL);Serial.print(" ");
 //    Serial.print(wbuffer.wXmR);Serial.print(" ");
 //    Serial.print(wbuffer.wXmL);Serial.print("\r\n");
@@ -164,9 +164,8 @@ while(1)
     //-------------------------IMU-------------------------------
     //-----------------------------------------------------------
   
-    ImuRead(CS_PIN);            // ask,read and print IMU data register
-
-    //Serial.println(rbuffer.rZacc);
+    
+    ImuRead(CS_PIN);            // ask,read and print IMU data register   
   
     //-------------------------ODrive------------------------------
     //-----------------------------------------------------------
@@ -179,8 +178,8 @@ while(1)
      // odrive.SetPosition(OD_RIGHT ,wbuffer.wOdR) ; //Motor 0
      // odrive.SetPosition(OD_LEFT ,wbuffer.wOdL); //Motor 1
       
-   rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS); 
-   rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
+   //rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS); 
+  // rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
   //
   //Serial.println(rOdR);
   //
@@ -207,70 +206,46 @@ while(1)
   
     //demarrer_chrono();
     //stop_chrono();
-}
+//}
 }
 
 
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------
 ////-------------------------------------------------------------------------------------------------------------
-//
 int ImuRead(unsigned char Cs_PIN) {
   //Lecture de X_RATE,Y_RATE,Z_RATE,X_ACCEL,Y_ACCEL,Z_ACCEL,X_MAG,Y_MAG,Z_MAG,DIAGNOSTIC_STATUS
   
-  digitalWrite(Cs_PIN, LOW);
+  lowPin();
   SPI_1.transfer16(X_RATE_adress);//gyroscope
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin();  
+   lowPin();
   rbuffer.rXrate = SPI_1.transfer16(Y_RATE_adress); 
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin() ; 
+   lowPin();
   rbuffer.rYrate = SPI_1.transfer16(Z_RATE_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rZrate = SPI_1.transfer16(X_ACC_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rXacc = SPI_1.transfer16(Y_ACC_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rYacc = SPI_1.transfer16(Z_ACC_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rZacc = SPI_1.transfer16(X_MAG_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rXmag = SPI_1.transfer16(Y_MAG_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rYmag = SPI_1.transfer16(Z_MAG_adress);
-  digitalWrite(Cs_PIN, HIGH);
-  digitalWrite(Cs_PIN, LOW);
+   highPin()  ;
+   lowPin();
   rbuffer.rZmag = SPI_1.transfer16(ZERO);
-  digitalWrite(Cs_PIN, HIGH);
-
-  //Formatage des octets avant envoie
-  //RATE
-//  rXrateM = fonction_MSB(imu.rXrate); //MSB
-//  rXrateL = fonction_LSB(imu.rXrate); //LSB
-//  rYrateM = fonction_MSB(imu.rYrate); //MSB
-//  rYrateL = fonction_LSB(imu.rYrate); //LSB
-//  rZrateM = fonction_MSB(imu.rZrate); //MSB
-//  rZrateL = fonction_LSB(imu.rZrate); //LSB
-//  //ACCELERATION
-//  rXaccM = fonction_MSB(imu.rXacc); //MSB
-//  rXaccL = fonction_LSB(imu.rXacc); //LSB
-//  rYaccM = fonction_MSB(imu.rYacc); //MSB
-//  rYaccL = fonction_LSB(imu.rYacc); //LSB
-//  rZaccM = fonction_MSB(imu.rZacc); //MSB
-//  rZaccL = fonction_LSB(imu.rZacc); //LSB
-//  //MAGNITUDE
-//  rXmagM = fonction_MSB(imu.rXmag); //MSB
-//  rXmagL = fonction_LSB(imu.rXmag); //LSB
-//  rYmagM = fonction_MSB(imu.rYmag); //MSB
-//  rYmagL = fonction_LSB(imu.rYmag); //LSB
-//  rZmagM = fonction_MSB(imu.rZmag); //MSB
-//  rZmagL = fonction_LSB(imu.rZmag); //LSB
+   highPin()  ;
 }
 
 
