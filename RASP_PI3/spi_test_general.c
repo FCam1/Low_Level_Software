@@ -19,6 +19,8 @@
 // Author: Mike McCauley
 // Copyright (C) 2012 Mike McCauley
 // $Id: RF22.h,v 1.21 2012/05/30 01:51:25 mikem Exp $
+//gcc -o spi_test_general spi_test_general.c -l bcm2835 -lm
+
 #include <bcm2835.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,17 +56,16 @@ int main(int argc, char **argv)
 while (1)
 {
  ph = ph+0.01;
- if (ph>1.57) ph-0.01;
 
  //To send 
 
  //wOdR= labs(255*cos(ph));
  wbuffer.wOdR= 0;
  wbuffer.wOdL= 0;
- wbuffer.wAxR= labs(255*cos(ph));
- wbuffer.wAxL= labs(255*cos(ph));
- wbuffer.wXmR= labs(4095*cos(ph));
- wbuffer.wXmL= labs(4095*cos(ph));
+ wbuffer.wAxR=(255*(0.5+0.5*cos(ph)));
+ wbuffer.wAxL=(255*(0.5+0.5*cos(ph)));
+ wbuffer.wXmR=(4095*(0.5+0.5*cos(ph)));
+ wbuffer.wXmL=(4095*(0.5+0.5*cos(ph)));
  
  
  //wbuffer.wAxR= 50;
@@ -75,7 +76,7 @@ while (1)
  //wbuffer.wOdL= 8000;
  
  //wbuffer.wXmR=11;
- //wbuffer.wXmL= 30;
+ //wbuffer.wXmL=30;
  
  
 
@@ -157,7 +158,7 @@ while (1)
   //printf("Received X mag  %f  \n",rXmag_scaled);
   //printf("Received Y mag  %f  \n",rYmag_scaled);
   //printf("Received Z mag  %f \n",rZmag_scaled);                                                     
-  delay(50);                                                   
+  delay(10);                                                   
                                                        
     
 
