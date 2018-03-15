@@ -65,16 +65,16 @@ uint8_t DIAGNOSTIC_STATUS;
 
 struct TrameWrite { // Variables "write" to send over SPI from the master
 //Odrive
-uint16_t wOdR ; 
-uint16_t wOdL ;
+uint16_t wOdR_pos ; 
+uint16_t wOdL_pos ;
 //AX
-uint16_t wAxR ;
-uint16_t wAxL ;
+uint16_t wAxR_pos;
+uint16_t wAxL_pos;
 //XM
-uint16_t wXmR ;
-uint16_t wXmL ;
+uint16_t wXmR_pos;
+uint16_t wXmL_pos ;
 
-//autre
+//Inutilisé
 uint16_t a ;
 uint16_t b ;
 uint16_t c ;
@@ -84,21 +84,23 @@ uint16_t f ;
 uint16_t g ;
 uint16_t h ;
 uint16_t i ;
-
-
+uint16_t k ;
+uint16_t l ;
 };
 
 
 struct TrameRead { // Variables "read" to send over SPI from the slave
 //Odrive
-uint16_t rOdR ; //read Odrive Right
-uint16_t rOdL ;
+uint16_t rOdR_pos; //read Odrive Right
+uint16_t rOdL_pos;
 //AX
-uint16_t rAxR ;
-uint16_t rAxL ;
+uint16_t rAxR_pos;
+uint16_t rAxL_pos;
 //XM
-uint16_t rXmR ;
-uint16_t rXmL ;
+uint16_t rXmR_pos;
+uint16_t rXmL_pos;
+uint16_t rXmR_cur;
+uint16_t rXmL_cur;
 //IMU
 int16_t rXrate;
 int16_t rYrate;
