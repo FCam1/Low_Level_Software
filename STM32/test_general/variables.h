@@ -38,7 +38,7 @@
 #define BAUD_XM                        1000000
 #define BAUD_ODRIVE                    115200
 //------------------SPI --------------------
-#if ENABLED ACTIV_CODEURS
+#ifdef ACTIV_CODEURS
   #define SIZE_BUFFER                    42
 #else
   #define SIZE_BUFFER                    30

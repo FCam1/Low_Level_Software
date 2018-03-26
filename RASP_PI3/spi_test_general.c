@@ -28,11 +28,13 @@
 int SPIbcm2835_setup ();
 
 
-struct TrameRead  rbuffer;
+//struct TrameRead  rbuffer;
 struct TrameRead* ptr_rbuffer;
 
-struct TrameWrite  wbuffer;
+//struct TrameWrite  wbuffer;
 struct TrameWrite* ptr_wbuffer;
+
+
 
 
 int main(int argc, char **argv)
@@ -43,29 +45,39 @@ int main(int argc, char **argv)
   
  SPIbcm2835_setup (); // configuration SPI
  float ph = 1.57;
+//========ecriture IMU============ 
+FILE* fichier= NULL;
+fichier=fopen ("testimu.txt", "w");
+int t=0;
+fopen ("testimu.txt", "a");
+fprintf (fichier,"t\t rXrate_scaled\t rYrate_scaled\t rZrate_scaled\t rXacc_scaled\t rYacc_scaled\t rZacc_scaled");
+fclose(fichier);
+//===================================
 
-
-while (1)
+for(;;)
 {
 
- ph = ph+0.01;
+ ph = ph+0.001;
 
  //To send 
  //wOdR= labs(255*cos(ph));
- wbuffer.wOdR= 0;
- wbuffer.wOdL= 0;
- wbuffer.wAxR=(255*(0.5+0.5*cos(ph)));
- wbuffer.wAxL=(255*(0.5+0.5*cos(ph)));
- wbuffer.wXmR=(4095*(0.5+0.5*cos(ph)));
- wbuffer.wXmL=(4095*(0.5+0.5*cos(ph)));
+ wbuffer.wOdR_pos= (8000*(0.5+0.5*cos(ph)));;
+ wbuffer.wOdL_pos= (8000*(0.5+0.5*cos(ph)));;
+ wbuffer.wAxR_pos=(255*(0.5+0.5*cos(ph)));
+ wbuffer.wAxL_pos=(255*(0.5+0.5*cos(ph)));
+ wbuffer.wXmR_pos=(500*(0.5+0.5*cos(ph)));
+ wbuffer.wXmL_pos=(1000*(0.5+0.5*cos(ph)));
+ 
+// wbuffer.wXmR_pos=(4095*(0.5+0.5*cos(ph)));
+// wbuffer.wXmL_pos=(4095*(0.5+0.5*cos(ph)));
  
  
- //wbuffer.wAxR= 50;
- //wbuffer.wAxL= 20;
- //wbuffer.wOdR= 1100;
- //wbuffer.wOdL= 8000;
- //wbuffer.wXmR=11;
- //wbuffer.wXmL=30;
+ //wbuffer.wAxR_pos= 50;
+ //wbuffer.wAxL_pos= 20;
+ //wbuffer.wOdR_pos= 1100;
+ //wbuffer.wOdL_pos= 8000;
+ //wbuffer.wXmR_pos=11;
+ //wbuffer.wXmL_pos=30;
                                                                                                             
                                                        
   //Activation SPI
@@ -76,6 +88,19 @@ while (1)
   
   //Arret SPI
   bcm2835_spi_end();
+  
+  //============ecriture IMU====================
+  //if (fichier !=NULL){
+  
+  //fopen ("testimu.txt", "a");// "a" : ecrire a la suite 
+  //fprintf (fichier,"\n%d\t %f\t %f\t %f\t %f\t %f\t %f\t",t,rXrate_scaled,rYrate_scaled,rZrate_scaled,rXacc_scaled,rYacc_scaled,rZacc_scaled);
+  //fclose(fichier);
+     //t=t+10; 
+  //}
+  //else {
+  //printf("erreur ouverture");
+  //}
+  //===========================================
   
   //Mise à l'echelle data IMU
   rXrate_scaled= (float) rbuffer.rXrate / FACTOR_RATE ;
@@ -89,12 +114,15 @@ while (1)
   rZmag_scaled= (float)  rbuffer.rZmag / FACTOR_MAG;
   
   printf("----Sent----\n");
-  printf(" OD0 %d | OD1 %d | AX1 %d | AX2 %d | XM1 %d | XM2 %d \n",wbuffer.wOdR,wbuffer.wOdL,wbuffer.wAxR,wbuffer.wAxL,wbuffer.wXmR,wbuffer.wXmL);
+  printf(" OD0 %d | OD1 %d | AX1 %d | AX2 %d | XM1 %d | XM2 %d \n",wbuffer.wOdR_pos,wbuffer.wOdL_pos,wbuffer.wAxR_pos,wbuffer.wAxL_pos,wbuffer.wXmR_pos,wbuffer.wXmL_pos);
   
   //printf("----ODrive----\n");
   //printf("Received rOdR %d \n",rxbuffer.rOdR);
   //printf("Received rOdL  %d \n",rxbuffer.rOdL);
-  
+  printf("----Reception Position----\n");
+  printf(" OD0 %d | OD1 %d | AX1 %d | AX2 %d | XM1 %d | XM2 %d \n",rbuffer.rOdR_pos,rbuffer.rOdL_pos,rbuffer.rAxR_pos,rbuffer.rAxL_pos,rbuffer.rXmR_pos,rbuffer.rXmL_pos);
+  printf("----Reception Courant----\n");
+  printf(" XM1 %d | XM2 %d \n",rbuffer.rXmR_cur,rbuffer.rXmL_cur);
   printf("----IMU Scaled----\n");
   printf("Received X rate  %f \n",rXrate_scaled);
   printf("Received Y rate  %f \n",rYrate_scaled);
@@ -105,9 +133,10 @@ while (1)
   printf("Received X mag  %f  \n",rXmag_scaled);
   printf("Received Y mag  %f  \n",rYmag_scaled);
   printf("Received Z mag  %f \n",rZmag_scaled);
+  printf("----Lecture Directe codeurs----\n");
+  printf(" codeur1 %d | codeur2 %d | codeur3 %d | codeur4 %d  \n",rbuffer.rCodRMot,rbuffer.rCodRHip,rbuffer.rCodLMot,rbuffer.rCodLHip);
                                                        
-  delay(10);                                                   
-                                                       
+  delay(10);                                        
 }
 
 return 0;
