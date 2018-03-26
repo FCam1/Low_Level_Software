@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+
+//Comment to desactive 
+#define ACTIV_CODEURS // Direct read of the 4 encremental endoders using STM32 timers
+
+
+
 ////dans .c: #include "variables.h"
 //------------------------IMU---------------------
 //Adresses registres
@@ -33,6 +39,9 @@
 #define BAUD_ODRIVE                    115200
 //------------------SPI --------------------
 #define SIZE_BUFFER                    30
+#ifdef ACTIV_CODEURS
+  #define SIZE_BUFFER                    42
+#endif
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX               PG2 
 #define PIN_DATA_CTRL_XM               PG3
@@ -64,52 +73,67 @@ uint8_t DIAGNOSTIC_STATUS;
 //------------------structures--------------------
 
 struct TrameWrite { // Variables "write" to send over SPI from the master
-//Odrive
-uint16_t wOdR_pos ; 
-uint16_t wOdL_pos ;
-//AX
-uint16_t wAxR_pos;
-uint16_t wAxL_pos;
-//XM
-uint16_t wXmR_pos;
-uint16_t wXmL_pos ;
-
-//Inutilisé
-uint16_t a ;
-uint16_t b ;
-uint16_t c ;
-uint16_t d ;
-uint16_t e ;
-uint16_t f ;
-uint16_t g ;
-uint16_t h ;
-uint16_t i ;
-uint16_t k ;
-uint16_t l ;
-};
+  //Odrive
+  uint16_t wOdR_pos ; 
+  uint16_t wOdL_pos ;
+  //AX
+  uint16_t wAxR_pos;
+  uint16_t wAxL_pos;
+  //XM
+  uint16_t wXmR_pos;
+  uint16_t wXmL_pos ;
+  
+  //Inutilisé
+  uint16_t a ;
+  uint16_t b ;
+  uint16_t c ;
+  uint16_t d ;
+  uint16_t e ;
+  uint16_t f ;
+  uint16_t g ;
+  uint16_t h ;
+  uint16_t i ;
+  uint16_t k ;
+  uint16_t l ;
+  #ifdef ACTIV_CODEURS
+  int16_t m;
+  int16_t n;
+  int16_t o;
+  int16_t p;
+  #endif
+}wbuffer;
 
 
 struct TrameRead { // Variables "read" to send over SPI from the slave
-//Odrive
-uint16_t rOdR_pos; //read Odrive Right
-uint16_t rOdL_pos;
-//AX
-uint16_t rAxR_pos;
-uint16_t rAxL_pos;
-//XM
-uint16_t rXmR_pos;
-uint16_t rXmL_pos;
-uint16_t rXmR_cur;
-uint16_t rXmL_cur;
-//IMU
-int16_t rXrate;
-int16_t rYrate;
-int16_t rZrate;
-int16_t rXacc;
-int16_t rYacc;
-int16_t rZacc;
-int16_t rXmag;
-int16_t rYmag;
-int16_t rZmag;
-};
+  //Odrive
+  uint16_t rOdR_pos; //read Odrive Right
+  uint16_t rOdL_pos;
+  //AX
+  uint16_t rAxR_pos;
+  uint16_t rAxL_pos;
+  //XM
+  uint16_t rXmR_pos;
+  uint16_t rXmL_pos;
+  uint16_t rXmR_cur;
+  uint16_t rXmL_cur;
+  //IMU
+  int16_t rXrate;
+  int16_t rYrate;
+  int16_t rZrate;
+  int16_t rXacc;
+  int16_t rYacc;
+  int16_t rZacc;
+  int16_t rXmag;
+  int16_t rYmag;
+  int16_t rZmag;
+  //Codeurs
+   #ifdef ACTIV_CODEURS
+  int16_t rCodRMot;
+  int16_t rCodRHip;
+  int16_t rCodLMot;
+  int16_t rCodLHip;
+  #endif
+
+}rbuffer;
+
 #endif

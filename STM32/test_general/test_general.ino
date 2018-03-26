@@ -1,17 +1,19 @@
 #include <SPI.h>
 #include <time.h>
+#include "codeurs.h"
+
+#ifndef codeurs.h
 #include "variables.h"
+#endif
+
 
 
 //macro
-#define lowPin()       (digitalWrite(Cs_PIN, LOW))
-#define highPin()     (digitalWrite(Cs_PIN, HIGH))
+//#define lowPin()       (digitalWrite(Cs_PIN, LOW))
+//#define highPin()     (digitalWrite(Cs_PIN, HIGH))
 
 //structures
-struct TrameWrite wbuffer;
 struct TrameWrite* ptr_wbuffer;
-
-struct TrameRead  rbuffer;
 struct TrameRead* ptr_rbuffer;
 
 //-----------------------------------------------------------
@@ -28,7 +30,6 @@ unsigned short CRC;
 //-----------------------------------------------------------
 SPIClass SPI_1(1);//Create an instance of the SPI Class called SPI_1 that uses the SPI Port 1
 SPIClass SPI_2(2);//Create an instance of the SPI Class called SPI_2 that uses the SPI Port 2
-
 //-----------------------------------------------------------
 //----------------------ODrive----------------------------------
 //-----------------------------------------------------------
@@ -61,11 +62,12 @@ void setupSPI1() {
   SPI_1.setDataMode(SPI_MODE3); //For IMU280ZA MODE3 CPHA=1 and CPOL=1
   SPI_1.setClockDivider(SPI_CLOCK_DIV64);      // Slow speed (72 / 64 = 1.125 MHz SPI speed) || IMU fclk= 2Mhz max!
   SPI_1.begin(); //Initialize the SPI_1 port.
-  spi_peripheral_disable(SPI1); // Configuration NSS harware management SSOE=1, SSM=0, SSI=0
-  bb_peri_set_bit(&SPI1->regs->CR2, SPI_CR2_SSOE_BIT, 1);
-  bb_peri_set_bit(&SPI1->regs->CR1, SPI_CR1_SSM_BIT,0);
-  bb_peri_set_bit(&SPI1->regs->CR1, SPI_CR1_SSI_BIT,0);
-  spi_peripheral_enable(SPI1); 
+ pinMode(PA4, OUTPUT);
+//  spi_peripheral_disable(SPI1); // Configuration NSS harware management SSOE=1, SSM=0, SSI=0
+//  bb_peri_set_bit(&SPI1->regs->CR2, SPI_CR2_SSOE_BIT, 1);
+//  bb_peri_set_bit(&SPI1->regs->CR1, SPI_CR1_SSM_BIT,0);
+//  bb_peri_set_bit(&SPI1->regs->CR1, SPI_CR1_SSI_BIT,0);
+//  spi_peripheral_enable(SPI1); 
 }
 
 void setupSPI2() {
@@ -79,6 +81,8 @@ void setupSPI2() {
   spi_slave_enable(SPI2, SPI_MODE0, SPI_FRAME_MSB & ~SPI_SW_SLAVE | SPI_DFF_8_BIT & ~SPI_CR1_BIDIMODE & ~SPI_CR1_RXONLY & ~SPI_CR1_CRCEN); // For FULL DUPLEX : BIDIMODE=0 and RXONLY=0
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
 
@@ -114,8 +118,8 @@ void setup() {
   //-------------------------SPI-------------------------------
   //-----------------------------------------------------------
   setupSPI1();//as master
-  setupSPI2();//as slave
-
+ setupSPI2();//as slave
+ 
   while (!Serial) {} Serial.println("4/5 SPI OK !"); Serial.setTimeout(10);
   //-------------------------ODrive------------------------------
   //-----------------------------------------------------------
@@ -123,20 +127,27 @@ void setup() {
 
   while (!Serial) {} Serial.println("5/5 Odrive OK !"); Serial.setTimeout(10);
 
+  //-----------------------CODEURS DIRECT READ----------------------------
+  //---------------------------------------------------------------------
+
+ setupCodeurs() ;
+ while (!Serial) {} Serial.println("Codeurs OK !"); Serial.setTimeout(10);
+
 }
 
 void loop()
 {
+  
   //------------------Affichage pour débogage-----------------------------------------
   //-----------------------------------------------------------
   //
   //  Serial.println("\n ------Reception Rasp3---------");
-  //  Serial.print(" wAxR ");Serial.println(wbuffer.wAxR) ;
-  //  Serial.print(" wAxL ");  Serial.println(wbuffer.wAxL);
-  //  Serial.print(" wXmR ");  Serial.println(wbuffer.wXmR);
-  //  Serial.print(" wXmL ");  Serial.println(wbuffer.wXmL);
-  //  Serial.print(" wOdR ");  Serial.println(wbuffer.wOdR);
-  //  Serial.print(" wOdL ");  Serial.println(wbuffer.wOdL);
+  //  Serial.print(" wAxR_pos ");Serial.println(wbuffer.wAxR_pos) ;
+  //  Serial.print(" wAxL_pos ");  Serial.println(wbuffer.wAxL_pos);
+  //  Serial.print(" wXmR_pos ");  Serial.println(wbuffer.wXmR_pos);
+  //  Serial.print(" wXmL_pos_pos");  Serial.println(wbuffer.wXmL_pos);
+  //  Serial.print(" wOdR_pos ");  Serial.println(wbuffer.wOdR_pos);
+  //  Serial.print(" wOdL_pos ");  Serial.println(wbuffer.wOdL_pos);
 
   //serialEvent4();
   //printBuffer4();
@@ -149,31 +160,36 @@ void loop()
   //-------------------------DYNAMIXEL-------------------------------
   //-----------------------------------------------------------
   //AX
-  // Dynamixel.move(AX_RIGHT,wbuffer.wAxR); //DYNAMIXEL AX Right
-  // Dynamixel.move(AX_LEFT,wbuffer.wAxL); //DYNAMIXEL AX Left
-    Dynamixel.synWritePos(AX_RIGHT,wbuffer.wAxR,AX_LEFT, wbuffer.wAxL);
-  //  rbuffer.rAxR =Dynamixel. readPosition(AX_RIGHT);
-  //  rbuffer.rAxL =Dynamixel. readPosition(AX_LEFT);
+  // Dynamixel.move(AX_RIGHT,wbuffer.wAxR_pos); //DYNAMIXEL AX Right
+  // Dynamixel.move(AX_LEFT,wbuffer.wAxL_pos); //DYNAMIXEL AX Left
+  //  Dynamixel.synWritePos(AX_RIGHT,wbuffer.wAxR_pos,AX_LEFT, wbuffer.wAxL_pos);
+  //  rbuffer.rAxR_pos =Dynamixel. readPosition(AX_RIGHT);
+  //  rbuffer.rAxL_pos =Dynamixel. readPosition(AX_LEFT);
   //
 
-  //Serial.print(" pos ");  Serial.println(rbuffer.rAxL);
+  //Serial.print(" pos ");  Serial.println(rbuffer.rAxL_pos);
   //printBuffer4();
   //XM
-  //DynamixelX.move(XM_RIGHT,wbuffer.wXmR);
-  //DynamixelX.move(XM_LEFT,wbuffer.wXmL);
+  //DynamixelX.move(XM_RIGHT,wbuffer.wXmR_pos);
+  //DynamixelX.move(XM_LEFT,wbuffer.wXmL_pos);
 
-    DynamixelX.synWritePos(XM_RIGHT,wbuffer.wXmR,XM_LEFT, wbuffer.wXmL);
-  
-    uint32_t incoming=DynamixelX.syncReadPos(XM_RIGHT,XM_LEFT); //Returns 16 bits for each motor
-    rbuffer.rXmR= incoming >> 16;
-    rbuffer.rXmL=incoming & 0xFFFF;
-  //Serial.print(" incoming ");  Serial.println(incoming,HEX);
-
+//    DynamixelX.synWritePos(XM_RIGHT,wbuffer.wXmR_pos,XM_LEFT, wbuffer.wXmL_pos);
+//  
+//    uint32_t incomingPos=DynamixelX.syncReadPos(XM_RIGHT,XM_LEFT); //Returns 16 bits for each motor
+//    rbuffer.rXmR_pos= incomingPos >> 16;
+//    rbuffer.rXmL_pos=incomingPos & 0xFFFF;
+//  //Serial.print(" incomingPos ");  Serial.println(incomingPos,HEX);
+//
+//    uint32_t incomingCur=DynamixelX.syncReadCur(XM_RIGHT,XM_LEFT); //Returns 16 bits for each motor
+//    rbuffer.rXmR_cur= incomingCur >> 16;
+//    rbuffer.rXmL_cur=incomingCur & 0xFFFF;
+ //Serial.print(" incomingCur ");  Serial.println(incomingCur,HEX);
+ 
   //uint32_t in = DynamixelX.ping(1);
   //Serial.print(" in ");  Serial.println(in,HEX);
 
-  //Serial.print(" r");  Serial.println(rbuffer.rXmR,DEC);
-  //Serial.print(" l ");  Serial.println(rbuffer.rXmL,DEC);
+  //Serial.print(" r");  Serial.println(rbuffer.rXmR_pos,DEC);
+  //Serial.print(" l ");  Serial.println(rbuffer.rXmL_pos,DEC);
 
   //int posx =DynamixelX. readPosition(XM_RIGHT);
   //Serial.print(" posx ");  Serial.println(posx);
@@ -189,21 +205,55 @@ void loop()
 
   //-------------------------IMU-------------------------------
   //-----------------------------------------------------------
- // demarrer_chrono() ;
-  ImuRead(CS_PIN);            // ask,read and print IMU data register
-  //stop_chrono() ;
+  //demarrer_chrono() ;
+  //ImuRead(CS_PIN);            // ask,read and print IMU data register
+ // stop_chrono() ;
   //-------------------------ODrive------------------------------
   //-----------------------------------------------------------
 
-  //  odrive.SetPosition(OD_RIGHT ,wbuffer.wOdR) ; //Motor 0
-  //  odrive.SetPosition(OD_LEFT ,wbuffer.wOdL); //Motor 1
+  //  odrive.SetPosition(OD_RIGHT ,wbuffer.wOdR_pos) ; //Motor 0
+  //  odrive.SetPosition(OD_LEFT ,wbuffer.wOdL_pos); //Motor 1
   //
   //  rbuffer.rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
   //  rbuffer.rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
   //
   //  Serial.println(rbuffer.rOdR);
   //  Serial.println(rbuffer.rOdL);
+    //digitalWrite(PA4, LOW); 
 
+     //demarrer_chrono() ;
+    //digitalWrite(PA15, LOW); 
+  //gpio_write_bit(GPIOA,15,0);
+  //GPIOA->regs->BRR=(1<<15);
+
+// gpio_write_bit(GPIOA,15,0);
+// rbuffer.rOdL_pos = SPI_3.transfer(0x00);//gyroscope
+//gpio_write_bit(GPIOA,15,1);
+
+    
+    //rbuffer.rOdL_pos = SPI_1.transfer(0x25);//gyroscope
+   
+
+//stop_chrono() ;
+
+  //-------------------------Codeurs------------------------------
+  //-----------------------------------------------------------
+  readCodeurs ();
+
+  Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodRMot);
+  Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodRHip);  
+   
+ 
+  delay (1);
+
+    
+   // rbuffer.rOdL_pos = SPI_3.transfer(0x00);//gyroscope
+  
+    
+    //Serial.println(rbuffer.rOdL_pos);
+   
+
+    //delay(10);
 }
 
 
