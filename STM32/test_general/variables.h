@@ -38,15 +38,15 @@
 #define BAUD_XM                        1000000
 #define BAUD_ODRIVE                    115200
 //------------------SPI --------------------
-#define SIZE_BUFFER                    30
-#ifdef ACTIV_CODEURS
+#if ENABLED ACTIV_CODEURS
   #define SIZE_BUFFER                    42
+#else
+  #define SIZE_BUFFER                    30
 #endif
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX               PG2 
 #define PIN_DATA_CTRL_XM               PG3
 //------------------Definition des Moteurs--------------------
-
 #define OD_RIGHT                       0
 #define OD_LEFT                        1
 #define AX_RIGHT                       1
@@ -54,7 +54,6 @@
 #define XM_RIGHT                       1
 #define XM_LEFT                        2 
 #define ALL                            254 // Broadcast ID
-
 //------------------Definition des Variables--------------------
 
 //IMU
