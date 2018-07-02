@@ -1,11 +1,7 @@
-
 #ifndef _MODULE_VAR_H
 #define _MODULE_VAR_H
 
 #include <stdint.h>
-
-//Comment to desactive
-#define ACTIV_CODEURS // Direct read of the 4 encremental endoders using STM32 timers
 
 ////dans .c: #include "variables.h"
 //------------------------IMU---------------------
@@ -36,11 +32,7 @@
 #define BAUD_XM 1000000
 #define BAUD_ODRIVE 115200
 //------------------SPI --------------------
-#ifdef ACTIV_CODEURS
-#define SIZE_BUFFER 42
-#else
-#define SIZE_BUFFER 30
-#endif
+#define SIZE_BUFFER 44
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX PG2
 #define PIN_DATA_CTRL_XM PG3
@@ -81,14 +73,17 @@ uint8_t DIAGNOSTIC_STATUS;
 struct TrameWrite
 { // Variables "write" to send over SPI from the master
   //Odrive
-  uint16_t wOd0_pos;
-  uint16_t wOd1_pos;
+  int16_t wOd0_pos;
+  int16_t wOd1_pos;
   //AX
   uint16_t wAx1_pos;
   uint16_t wAx2_pos;
   //XM
   uint16_t wXm1_pos;
   uint16_t wXm2_pos;
+
+  uint16_t wspi_test;
+  uint16_t w_flag;
 
   //Inutilisé
   uint16_t a;
@@ -101,13 +96,10 @@ struct TrameWrite
   uint16_t h;
   uint16_t i;
   uint16_t k;
-  uint16_t l;
-
   int16_t m;
   int16_t n;
   int16_t o;
   int16_t p;
-
 } wbuffer;
 
 struct TrameRead
@@ -124,10 +116,11 @@ struct TrameRead
   uint16_t rXm1_cur;
   uint16_t rXm2_cur;
   //IMU
-
   int16_t rate[3];
   int16_t acc[3];
   int16_t mag[3];
+
+  uint16_t rspi_test;
 
   //  int16_t rXrate;
   //  int16_t rYrate;
@@ -139,12 +132,23 @@ struct TrameRead
   //  int16_t rYmag;
   //  int16_t rZmag;
   //Codeurs
+  int16_t rCodHip0;
+  int16_t rCodHip1;
+  int16_t rCodMot0;
+  int16_t rCodMot1;
 
-  int16_t rCodRMot;
-  int16_t rCodRHip;
-  int16_t rCodLMot;
-  int16_t rCodLHip;
+  //attention la deniere variable peut ne pas être stable
 
 } rbuffer;
 
+//------------------Flags--------------------
+#define NO_FLAG 0
+#define FLAG_OD 1
+#define FLAG_AX 2
+#define FLAG_XM 4
+#define FLAG_IMU 8
+#define FLAG_CODEURS 16
+
 #endif
+
+
