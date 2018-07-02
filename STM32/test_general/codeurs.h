@@ -110,11 +110,11 @@ int readCodeurs (){
 
 //     Serial.println(Timer1.getDirection());
 
-     rbuffer.rCodRMot=Timer1.getCount();
-     rbuffer.rCodRHip=Timer2.getCount();
+    // rbuffer.rCodRMot=Timer1.getCount();
+     //rbuffer.rCodRHip=Timer2.getCount();
 
-     rbuffer.rCodLMot=Timer4.getCount();
-     rbuffer.rCodLHip=Timer8.getCount();
+    // rbuffer.rCodLMot=Timer4.getCount();
+    // rbuffer.rCodLHip=Timer8.getCount();
 }
 
 #endif
