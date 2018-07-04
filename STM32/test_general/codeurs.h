@@ -29,8 +29,6 @@
  * 
 */
 
-#include "variables.h"
-
 //Pulses per revolution
 #define PPR   2048
 
@@ -105,16 +103,12 @@ void setupCodeurs() {
 
   
 }
-
-int readCodeurs (){
-
-//     Serial.println(Timer1.getDirection());
+//Serial.println(Timer1.getDirection());
 
     // rbuffer.rCodRMot=Timer1.getCount();
      //rbuffer.rCodRHip=Timer2.getCount();
-
     // rbuffer.rCodLMot=Timer4.getCount();
     // rbuffer.rCodLHip=Timer8.getCount();
-}
+
 
 #endif

@@ -1,10 +1,7 @@
 #include <SPI.h>
 #include <time.h>
 #include "codeurs.h"
-
-#ifndef codeurs.h
 #include "variables.h"
-#endif
 
 //macro
 #define lowPin() (gpio_write_bit(GPIOB, 12, 0))  //PB12 LOW
@@ -89,11 +86,6 @@ void setupSPI1()
 
 void setup()
 {
-
-  //  //Pointeurs Structures
-  //  ptr_wbuffer = &wbuffer;
-  //  ptr_rbuffer = &rbuffer;
-
   //----------------------SERIAL USB------------------------------
   //-----------------------------------------------------------
   Serial.begin(9600); //USB
@@ -257,13 +249,13 @@ void loop()
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
 
-  //  readCodeurs (); //envoie la valeur des 4 codeurs
+   ptr_rbuffer->rCodHip0=Timer1.getCount();
+   ptr_rbuffer->rCodHip1=Timer4.getCount();
 
   /*Affichage*/
   //  Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodRMot);
   //  Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodRHip);
 
-  //delay(10);
 }
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------
@@ -314,24 +306,7 @@ void displayVar()
   //    Serial.print(" wOd1_pos ");  Serial.println(wbuffer.wOd1_pos);
 }
 
-int testinit()
-{
 
-  //  uint32_t MnumberAx = 0;
-  //  uint32_t MnumberXM = 0;
-  //
-  //    uint32_t a=  Dynamixel.ping(AX_1);
-  //    uint32_t b=Dynamixel.ping(AX_2);
-  //    uint32_t c=DynamixelX.ping(XM_1);
-  //    uint32_t d= DynamixelX.ping(XM_2);
-  //
-  //    if (a != MnumberAx || b != MnumberAx || c != MnumberXm || d != MnumberXm)
-  //
-  //    else
-  //
-  //
-  //
-}
 
 //------------------------------inutilisé----------------------------------------------
 //---------------------------------------------------------------
