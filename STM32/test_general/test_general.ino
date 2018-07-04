@@ -11,6 +11,7 @@
   gpio_write_bit(GPIOA,15,0); rapide
   GPIOA->regs->BRR=(1<<15); rapide
 */
+#define testFlag(flag) ((ptr_wbuffer->w_flag & flag) != 0) // test flag
 
 //structures
 struct TrameWrite *ptr_wbuffer = &wbuffer;
@@ -19,7 +20,7 @@ struct TrameRead *ptr_rbuffer = &rbuffer;
 //-----------------------------------------------------------
 //----------------------DYNAMIXEL AX------------------------
 //-----------------------------------------------------------
-#include <SavageDynamixelSerial_Upgraded.h> ///ATENTION SERIAL 3 || Tx, Rx pins have to be modified in DynamixelSerial_Modified.cpp ||
+#include <SavageDynamixelSerial_Upgraded.h> ///ATENTION SERIAL 4 || Tx, Rx pins have to be modified in DynamixelSerial_Modified.cpp ||
 
 //-----------------------------------------------------------
 //----------------------DYNAMIXEL XM------------------------
@@ -99,6 +100,8 @@ void setup()
   //!\/Serial 3 defined - to modify it go to DynamixelSerial_modified.cpp
   Dynamixel.begin(BAUD_AX, PIN_DATA_CTRL_AX); // Inicialize the servo AX at 1Mbps and Pin Control
   delay(1);
+  Dynamixel.torqueStatus(ALL, 0); //Enable free movement
+  delay(10);
   Dynamixel.setRDT(ALL, 1); //Set return delay to 2us
   delay(10);
   Dynamixel.setMaxTorque(ALL, 1023); // max torque = 1023
@@ -112,15 +115,14 @@ void setup()
   Serial.setTimeout(10);
   //----------------------DYNAMIXEL XM------------------------
   //-----------------------------------------------------------
-  DynamixelX.begin(BAUD_XM, PIN_DATA_CTRL_XM);
-
-  //Initialization
+  DynamixelX.begin(BAUD_XM, PIN_DATA_CTRL_XM); //Initialization
+  delay(10);
   DynamixelX.setTorque(ALL, 0); //(ID, 0 ) Enable EEPROM
   delay(10);
   DynamixelX.setRDT(ALL, 1); //Set return delay to 2us
   delay(10);
-  DynamixelX.setTorque(ALL, 1); //(ID, 1) Enable moving
-  delay(10);
+  //DynamixelX.setTorque(ALL, 1); //(ID, 1) Enable moving
+  //delay(10);
   while (!Serial)
   {
   }
@@ -132,7 +134,6 @@ void setup()
   setupSPI2();                   //as master
   setupSPI1();                   //as slave
   ptr_rbuffer->rspi_test = NULL; // reset SPI test variable
-
   while (!Serial)
   {
   }
@@ -178,44 +179,135 @@ void loop()
 
   //-------------------------DYNAMIXEL AX-------------------------------
   //-----------------------------------------------------------
-  /*Fonctions pour commande double*/
-  //Dynamixel.synWritePos(AX_1, wbuffer.wAx1_pos, AX_2, wbuffer.wAx2_pos);
-  /*Fonctions pour commande simple*/
-  // Dynamixel.move(AX_1,wbuffer.wAx1_pos); //DYNAMIXEL AX Right
-  // Dynamixel.move(AX_2,wbuffer.wAx2_pos); //DYNAMIXEL AX Left
-  /*Reception*/
-  //rbuffer.rAx1_pos =Dynamixel. readPosition(AX_1);
-  // rbuffer.rAx2_pos =Dynamixel. readPosition(AX_2);
-  rbuffer.rAx1_pos = 265;
-  rbuffer.rAx2_pos = 444;
-  /*Affichage*/
-  //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
-  //  Serial.print(" rAx2_pos : ");  Serial.println(rbuffer.rAx2_pos);
+
+  if (testFlag(FLAG_RAX))
+  {
+    //Local variables
+    int dataAx;
+
+    /*Reception*/
+    int error = Dynamixel.readPosition(AX_1, &dataAx); // int error =Dynamixel. readPosition(AX_1,(int*)ptr_rbuffer->rAx1_pos);
+
+    while (dataAx > 1023) //Restart the serial port when receiving corrupted data, 1023 is the max possible
+    {
+      Dynamixel.end();
+      delayMicroseconds(1);
+      Dynamixel.begin(BAUD_AX, PIN_DATA_CTRL_AX);
+      delayMicroseconds(1);
+      error = Dynamixel.readPosition(AX_1, &dataAx);
+    }
+    ptr_rbuffer->rAx1_pos = dataAx;
+
+    delayMicroseconds(80);
+
+    rbuffer.rAx2_pos = Dynamixel.readPosition(AX_2, &dataAx);
+
+    while (dataAx > 1023) //Restart the serial port when receiving corrupted data, 1023 is the max possible
+    {
+      Dynamixel.end();
+      delayMicroseconds(1);
+      Dynamixel.begin(BAUD_AX, PIN_DATA_CTRL_AX);
+      delayMicroseconds(1);
+      error = Dynamixel.readPosition(AX_2, &dataAx);
+    }
+    ptr_rbuffer->rAx2_pos = dataAx;
+  }
+
+  if (testFlag(FLAG_WAX))
+  {
+    /*Fonctions pour commande simple*/
+    //  Dynamixel.move(AX_1,wbuffer.wAx1_pos); //DYNAMIXEL AX Right
+    //  Dynamixel.move(AX_2,wbuffer.wAx2_pos); //DYNAMIXEL AX Left
+    /*Fonctions pour commande double*/
+    Dynamixel.synWritePos(AX_1, wbuffer.wAx1_pos, AX_2, wbuffer.wAx2_pos);
+  }
 
   //-------------------------DYNAMIXEL XM-------------------------------
   //----------------------------------------------------------------
-  /*Fonctions pour commande position double*/
-  //DynamixelX.synWritePos(XM_1, wbuffer.wXm1_pos, XM_2, wbuffer.wXm2_pos);
-  /*Fonctions pour commande simple*/
-  //  DynamixelX.move(XM_1,wbuffer.wXm1_pos);
-  //  DynamixelX.move(XM_2,wbuffer.wXm2_pos);
 
-  /*Fonctions de reception position double*/
-  //    uint32_t incomingPos=DynamixelX.syncReadPos(XM_1,XM_2); //Returns 16 bits for each motor
-  //    rbuffer.rXmR_pos= incomingPos >> 16;
-  //    rbuffer.rXmL_pos=incomingPos & 0xFFFF;
-  //Serial.print(" incomingPos ");  Serial.println(incomingPos,HEX);
+  if (testFlag(FLAG_TORQUEXM))
+  {
+    DynamixelX.setTorque(ALL, 1); //(ID, 1) Enable moving
+    delay(10);
+  }
 
-  /*Fonctions de reception courant double*/
-  //    uint32_t incomingCur=DynamixelX.syncReadCur(XM_1,XM_2); //Returns 16 bits for each motor
-  //    rbuffer.rXmR_cur= incomingCur >> 16;
-  //    rbuffer.rXmL_cur=incomingCur & 0xFFFF;
-  //Serial.print(" incomingCur ");  Serial.println(incomingCur,HEX);
+  if (testFlag(FLAG_RXM))
+  {
+    //Local variables
+    int dataXm1, dataXm2;
 
-  /*Fonctions ping*/
-  //uint32_t in = DynamixelX.ping(1);
-  //Serial.print(" in ");  Serial.println(in,HEX);
+    //DynamixelX.syncReadPos(XM_1,&a1,XM_2,&a2); //Returns 16 bits for each motor
 
+    DynamixelX.syncReadPos(XM_1, &dataXm1, XM_2, &dataXm2); //Returns 16 bits for each motor
+
+    ptr_rbuffer->rXm1_pos = dataXm1;
+    ptr_rbuffer->rXm2_pos = dataXm2;
+
+    /*Fonctions de reception position double*/
+    //int  error = DynamixelX.syncReadPos(XM_1,(int*)ptr_rbuffer->rXm1_pos,XM_2,(int*)ptr_rbuffer->rXm2_pos); //Returns 16 bits for each motor
+
+    delayMicroseconds(350);
+
+    /*Fonctions de reception courant double*/
+    //    uint32_t incomingCur=DynamixelX.syncReadCur(XM_1,XM_2); //Returns 16 bits for each motor
+    //    rbuffer.rXmR_cur= incomingCur >> 16;
+    //    rbuffer.rXmL_cur=incomingCur & 0xFFFF;
+    //Serial.print(" incomingCur ");  Serial.println(incomingCur,HEX);
+
+    /*Fonctions de reception position simple*/
+    //int posx =DynamixelX. readPosition(XM_1);
+
+    /*Fonctions ping*/
+    //uint32_t in = DynamixelX.ping(1);
+    //Serial.print(" in ");  Serial.println(in,HEX);
+  }
+
+  if (testFlag(FLAG_WXM))
+  {
+    /*Fonctions pour commande position double*/
+    DynamixelX.synWritePos(XM_1, wbuffer.wXm1_pos, XM_2, wbuffer.wXm2_pos);
+    /*Fonctions pour commande simple*/
+    //  DynamixelX.move(XM_1,wbuffer.wXm1_pos);
+    //  DynamixelX.move(XM_2,wbuffer.wXm2_pos);
+  }
+
+  //-------------------------IMU-------------------------------
+  //-----------------------------------------------------------
+
+  if (testFlag(FLAG_IMU))
+  {
+    //demarrer_chrono() ;
+    ImuRead(CS_PIN); // ask,read and print IMU data register
+    // stop_chrono() ;
+  }
+
+  //-------------------------ODrive------------------------------
+  //-----------------------------------------------------------
+  if (testFlag(FLAG_OD))
+  {
+    // odrive.SetPosition(OD_RIGHT ,wbuffer.wOd0_pos) ; //Motor 0
+    //  odrive.SetPosition(OD_LEFT ,wbuffer.wOd1_pos); //Motor 1
+    //
+    //  rbuffer.rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
+    //  rbuffer.rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
+
+    /*Affichage*/
+    //  Serial.print("rOdR_pos : ");    Serial.println(rbuffer.rOdR_pos);
+    //  Serial.print("rOdL_pos : ");    Serial.println(rbuffer.rOdL_pos);
+
+    //stop_chrono() ;
+  }
+  //-------------------------Codeurs------------------------------
+  //-----------------------------------------------------------
+  if (testFlag(FLAG_CODEURS))
+  {
+    ptr_rbuffer->rCodHip0 = Timer1.getCount();
+    ptr_rbuffer->rCodHip1 = Timer4.getCount();
+  }
+
+  //-------------------------Affichage----------------------------------------------
+  //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
+  //  Serial.print(" rAx2_pos : ");  Serial.println(rbuffer.rAx2_pos);
   /*Affichage*/
   //  Serial.print("wXm1_pos : ");  Serial.println(wbuffer.wXm1_pos,DEC);
   //  Serial.print("rXmL_pos : ");  Serial.println(wbuffer.wXm2_pos,DEC);
@@ -223,39 +315,9 @@ void loop()
   //  Serial.print("rXmR_pos : ");  Serial.println(rbuffer.rXmR_pos,DEC);
   //  Serial.print("rXmL_pos : ");  Serial.println(rbuffer.rXmL_pos,DEC);
 
-  //int posx =DynamixelX. readPosition(XM_1);
-  //Serial.print(" posx ");  Serial.println(posx);
-
-  //-------------------------IMU-------------------------------
-  //-----------------------------------------------------------
-  //demarrer_chrono() ;
-  ImuRead(CS_PIN); // ask,read and print IMU data register
-  // stop_chrono() ;
-  //-------------------------ODrive------------------------------
-  //-----------------------------------------------------------
-
-  // odrive.SetPosition(OD_RIGHT ,wbuffer.wOd0_pos) ; //Motor 0
-  //  odrive.SetPosition(OD_LEFT ,wbuffer.wOd1_pos); //Motor 1
-  //
-  //  rbuffer.rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
-  //  rbuffer.rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
-
-  /*Affichage*/
-  //  Serial.print("rOdR_pos : ");    Serial.println(rbuffer.rOdR_pos);
-  //  Serial.print("rOdL_pos : ");    Serial.println(rbuffer.rOdL_pos);
-
-  //stop_chrono() ;
-
-  //-------------------------Codeurs------------------------------
-  //-----------------------------------------------------------
-
-   ptr_rbuffer->rCodHip0=Timer1.getCount();
-   ptr_rbuffer->rCodHip1=Timer4.getCount();
-
   /*Affichage*/
   //  Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodRMot);
   //  Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodRHip);
-
 }
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------
@@ -305,8 +367,6 @@ void displayVar()
   //    Serial.print(" wOd0_pos ");  Serial.println(wbuffer.wOd0_pos);
   //    Serial.print(" wOd1_pos ");  Serial.println(wbuffer.wOd1_pos);
 }
-
-
 
 //------------------------------inutilisé----------------------------------------------
 //---------------------------------------------------------------
