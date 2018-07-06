@@ -198,7 +198,7 @@ void loop()
     }
     ptr_rbuffer->rAx1_pos = dataAx;
 
-    delayMicroseconds(80);
+    delayMicroseconds(80); //Waiting the end of the transmission
 
     rbuffer.rAx2_pos = Dynamixel.readPosition(AX_2, &dataAx);
 
@@ -236,17 +236,14 @@ void loop()
     //Local variables
     int dataXm1, dataXm2;
 
-    //DynamixelX.syncReadPos(XM_1,&a1,XM_2,&a2); //Returns 16 bits for each motor
-
     DynamixelX.syncReadPos(XM_1, &dataXm1, XM_2, &dataXm2); //Returns 16 bits for each motor
-
     ptr_rbuffer->rXm1_pos = dataXm1;
     ptr_rbuffer->rXm2_pos = dataXm2;
 
+    // delayMicroseconds(350);//Waiting the end of the transmission
+
     /*Fonctions de reception position double*/
     //int  error = DynamixelX.syncReadPos(XM_1,(int*)ptr_rbuffer->rXm1_pos,XM_2,(int*)ptr_rbuffer->rXm2_pos); //Returns 16 bits for each motor
-
-    delayMicroseconds(350);
 
     /*Fonctions de reception courant double*/
     //    uint32_t incomingCur=DynamixelX.syncReadCur(XM_1,XM_2); //Returns 16 bits for each motor
@@ -285,8 +282,8 @@ void loop()
   //-----------------------------------------------------------
   if (testFlag(FLAG_OD))
   {
-    // odrive.SetPosition(OD_RIGHT ,wbuffer.wOd0_pos) ; //Motor 0
-    //  odrive.SetPosition(OD_LEFT ,wbuffer.wOd1_pos); //Motor 1
+    odrive.SetPosition(OD_0, wbuffer.wOd0_pos); //Motor 0
+    odrive.SetPosition(OD_1, wbuffer.wOd1_pos); //Motor 1
     //
     //  rbuffer.rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
     //  rbuffer.rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
@@ -299,12 +296,31 @@ void loop()
   }
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
+ /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
+ * getCount() retrurns count between 0 and 2048 (PPR) not taking in account the direction
+ * Scheme: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048 
+ * We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024 
+ * Max upper body amplitude +-45° = +-256
+ */
+  int count1 = Timer1.getCount();//Read the counter register 
+  int count4 = Timer4.getCount();
+
   if (testFlag(FLAG_CODEURS))
   {
-    ptr_rbuffer->rCodHip0 = Timer1.getCount();
-    ptr_rbuffer->rCodHip1 = Timer4.getCount();
-  }
+    if (count1 > 1024) //& Timer1.getDirection() == 1) // Symmetrical count
+    {
+      ptr_rbuffer->rCodHip0 = -2049 + count1;// Converted to negative 
+    }
+    else
+      ptr_rbuffer->rCodHip0 = count1;// Normal count
 
+    if (count4 > 1024) //& Timer4.getDirection() == 1)// Symmetrical count
+    {
+      ptr_rbuffer->rCodHip1 = -2049 + count4;// Converted to negative
+    }
+    else
+      ptr_rbuffer->rCodHip1 = count4;// Normal count
+  }
   //-------------------------Affichage----------------------------------------------
   //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
   //  Serial.print(" rAx2_pos : ");  Serial.println(rbuffer.rAx2_pos);
