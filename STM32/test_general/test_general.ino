@@ -59,7 +59,7 @@ void stop_chrono()
   Serial.print("Soit en us :");
   Serial.println(duree * 1000000);
 }
-//-----------------------------------------------------------
+//----------------------SETUP SPIs------------------------------
 //-----------------------------------------------------------
 void setupSPI2()
 {
@@ -131,9 +131,8 @@ void setup()
 
   //-------------------------SPI-------------------------------
   //-----------------------------------------------------------
-  setupSPI2();                   //as master
-  setupSPI1();                   //as slave
-  ptr_rbuffer->rspi_test = NULL; // reset SPI test variable
+  setupSPI2(); //as master
+  setupSPI1(); //as slave
   while (!Serial)
   {
   }
@@ -173,9 +172,12 @@ void loop()
   //-------------------------ENTREES SPI-------------------------------
   //-----------------------------------------------------------------
 
-  SPI_1.transferSlave(((uint8_t *)ptr_wbuffer), ((uint8_t *)ptr_rbuffer), SIZE_BUFFER); //(RX,TX,size) Transfer to the master
-  ptr_rbuffer->rspi_test = ptr_wbuffer->wspi_test;
-  //demarrer_chrono() ;
+  do
+  {
+    ptr_wbuffer->wspi_test = NULL;                                                        // reset received test variable
+    SPI_1.transferSlave(((uint8_t *)ptr_wbuffer), ((uint8_t *)ptr_rbuffer), SIZE_BUFFER); //(RX,TX,size) Transfer to the master
+    ptr_rbuffer->rspi_test = ptr_wbuffer->wspi_test;                                      // Used to test data transmited = SESAME
+  } while (rbuffer.rspi_test != SESAME);                                                  //block until receiving proper data
 
   //-------------------------DYNAMIXEL AX-------------------------------
   //-----------------------------------------------------------
@@ -296,30 +298,30 @@ void loop()
   }
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
- /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
- * getCount() retrurns count between 0 and 2048 (PPR) not taking in account the direction
+  /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
+ * getCount() returns count between 0 and 2048 (PPR) not taking in account the direction
  * Scheme: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048 
  * We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024 
  * Max upper body amplitude +-45° = +-256
  */
-  int count1 = Timer1.getCount();//Read the counter register 
+  int count1 = Timer1.getCount(); //Read the counter register
   int count4 = Timer4.getCount();
 
   if (testFlag(FLAG_CODEURS))
   {
     if (count1 > 1024) //& Timer1.getDirection() == 1) // Symmetrical count
     {
-      ptr_rbuffer->rCodHip0 = -2049 + count1;// Converted to negative 
+      ptr_rbuffer->rCodHip0 = -2049 + count1; // Converted to negative
     }
     else
-      ptr_rbuffer->rCodHip0 = count1;// Normal count
+      ptr_rbuffer->rCodHip0 = count1; // Normal count
 
     if (count4 > 1024) //& Timer4.getDirection() == 1)// Symmetrical count
     {
-      ptr_rbuffer->rCodHip1 = -2049 + count4;// Converted to negative
+      ptr_rbuffer->rCodHip1 = -2049 + count4; // Converted to negative
     }
     else
-      ptr_rbuffer->rCodHip1 = count4;// Normal count
+      ptr_rbuffer->rCodHip1 = count4; // Normal count
   }
   //-------------------------Affichage----------------------------------------------
   //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
