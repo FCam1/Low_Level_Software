@@ -21,11 +21,11 @@ struct TrameRead *ptr_rbuffer = &rbuffer;
 //----------------------DYNAMIXEL AX------------------------
 //-----------------------------------------------------------
 #include <SavageDynamixelSerial_Upgraded.h> ///ATENTION SERIAL 4 || Tx, Rx pins have to be modified in DynamixelSerial_Modified.cpp ||
-
+DynamixelClass Dynamixel(Serial4);
 //-----------------------------------------------------------
 //----------------------DYNAMIXEL XM------------------------
 //-----------------------------------------------------------
-unsigned short CRC;
+DynamixelXClass DynamixelX(Serial5);
 //-----------------------------------------------------------
 //----------------------SPI----------------------------------
 //-----------------------------------------------------------
@@ -36,7 +36,8 @@ SPIClass SPI_2(2); //Create an instance of the SPI Class called SPI_2 that uses 
 //-----------------------------------------------------------
 #include <ODriveArduino.h>
 ODriveArduino odrive(Serial3);
-
+template <class T>inline Print &operator<<(Print &obj, T arg){obj.print(arg);return obj;}
+template <>inline Print &operator<<(Print &obj, float arg){obj.print(arg, 4);return obj;}
 //-----------------------------------------------------------
 //-----------------------------------------------------------
 
@@ -87,18 +88,19 @@ void setupSPI1()
 
 void setup()
 {
-  //----------------------SERIAL USB------------------------------
-  //-----------------------------------------------------------
+  //  //----------------------SERIAL USB------------------------------
+  //  //-----------------------------------------------------------
   Serial.begin(9600); //USB
   while (!Serial)
   {
   }
   Serial.println("1/5 USB OK !");
   Serial.setTimeout(10);
-  //----------------------DYNAMIXEL AX-------------------------
-  //-----------------------------------------------------------
-  //!\/Serial 3 defined - to modify it go to DynamixelSerial_modified.cpp
-  Dynamixel.begin(BAUD_AX, PIN_DATA_CTRL_AX); // Inicialize the servo AX at 1Mbps and Pin Control
+  //  //----------------------DYNAMIXEL AX-------------------------
+  //  //-----------------------------------------------------------
+  Serial4.begin(BAUD_AX);
+
+  Dynamixel.SetDirPin(PIN_DATA_CTRL_AX); // Inicialize the servo AX at 1Mbps and Pin Control
   delay(1);
   Dynamixel.torqueStatus(ALL, 0); //Enable free movement
   delay(10);
@@ -113,9 +115,11 @@ void setup()
   }
   Serial.println("2/5 AX OK !");
   Serial.setTimeout(10);
-  //----------------------DYNAMIXEL XM------------------------
-  //-----------------------------------------------------------
-  DynamixelX.begin(BAUD_XM, PIN_DATA_CTRL_XM); //Initialization
+  //  //----------------------DYNAMIXEL XM------------------------
+  //  //-----------------------------------------------------------
+  Serial5.begin(BAUD_XM);
+
+  DynamixelX.SetDirPin(PIN_DATA_CTRL_XM); //Initialization
   delay(10);
   DynamixelX.setTorque(ALL, 0); //(ID, 0 ) Enable EEPROM
   delay(10);
@@ -171,7 +175,6 @@ void loop()
   //printBuffer4();
   //-------------------------ENTREES SPI-------------------------------
   //-----------------------------------------------------------------
-
   do
   {
     ptr_wbuffer->wspi_test = NULL;                                                        // reset received test variable
@@ -241,6 +244,7 @@ void loop()
     DynamixelX.syncReadPos(XM_1, &dataXm1, XM_2, &dataXm2); //Returns 16 bits for each motor
     ptr_rbuffer->rXm1_pos = dataXm1;
     ptr_rbuffer->rXm2_pos = dataXm2;
+    delayMicroseconds(250); //Waiting the end of the transmission
 
     // delayMicroseconds(350);//Waiting the end of the transmission
 
@@ -275,27 +279,39 @@ void loop()
 
   if (testFlag(FLAG_IMU))
   {
-    //demarrer_chrono() ;
     ImuRead(CS_PIN); // ask,read and print IMU data register
-    // stop_chrono() ;
   }
 
   //-------------------------ODrive------------------------------
   //-----------------------------------------------------------
-  if (testFlag(FLAG_OD))
+  //write 2motors : 742us
+  //read 2motors : 8467us
+  //r/w 2motors : 9611 us -> allow to work at 100Hz
+  if (testFlag(FLAG_ROD))
   {
-    odrive.SetPosition(OD_0, wbuffer.wOd0_pos); //Motor 0
-    odrive.SetPosition(OD_1, wbuffer.wOd1_pos); //Motor 1
-    //
-    //  rbuffer.rOdR = odrive.GetParameter(OD_RIGHT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
-    //  rbuffer.rOdL = odrive.GetParameter(OD_LEFT , odrive.PARAM_FLOAT_ENCODER_PLL_POS);
+    Serial3 << "r axis" << OD_0 << ".encoder.pos_estimate\n";
+    Serial3.flush(); //not working without
+    rbuffer.rOd0_pos = (uint16_t)odrive.readInt();
+
+    Serial3 << "r axis" << OD_1 << ".encoder.pos_estimate\n";
+    Serial3.flush(); //not working without
+    rbuffer.rOd1_pos = (uint16_t)odrive.readInt();
+
+    //  rbuffer.rOd0_pos = odrive.readFloat(OD_0 , .encoder.pos_estimate);
+    // rbuffer.rOd1_pos = odrive.readFloat(OD_1, encoder.pos_estimate);
 
     /*Affichage*/
     //  Serial.print("rOdR_pos : ");    Serial.println(rbuffer.rOdR_pos);
     //  Serial.print("rOdL_pos : ");    Serial.println(rbuffer.rOdL_pos);
-
-    //stop_chrono() ;
   }
+
+  if (testFlag(FLAG_WOD))
+  {
+    //read 2motors : 740us
+    odrive.SetPosition(OD_0, (float)wbuffer.wOd0_pos); //Motor 0
+    odrive.SetPosition(OD_1, (float)wbuffer.wOd1_pos); //Motor 1
+  }
+
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
   /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
@@ -304,11 +320,12 @@ void loop()
  * We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024 
  * Max upper body amplitude +-45° = +-256
  */
-  int count1 = Timer1.getCount(); //Read the counter register
-  int count4 = Timer4.getCount();
 
   if (testFlag(FLAG_CODEURS))
   {
+    int count1 = Timer1.getCount(); //Read the counter register
+    int count4 = Timer4.getCount();
+
     if (count1 > 1024) //& Timer1.getDirection() == 1) // Symmetrical count
     {
       ptr_rbuffer->rCodHip0 = -2049 + count1; // Converted to negative
@@ -336,6 +353,8 @@ void loop()
   /*Affichage*/
   //  Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodRMot);
   //  Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodRHip);
+
+  //  //stop_chrono() ;
 }
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------

@@ -144,14 +144,15 @@ struct TrameRead
 
 //------------------Flags--------------------
 #define NO_FLAG 0
-#define FLAG_OD 1
-#define FLAG_RAX 2
-#define FLAG_WAX 4
-#define FLAG_RXM 8       // read data
-#define FLAG_WXM 16      //write data
-#define FLAG_TORQUEXM 32 // enable torque
-#define FLAG_IMU 64
-#define FLAG_CODEURS 128
+#define FLAG_ROD 1
+#define FLAG_WOD 2
+#define FLAG_RAX 4
+#define FLAG_WAX 8
+#define FLAG_RXM 16      // read data
+#define FLAG_WXM 32      //write data
+#define FLAG_TORQUEXM 64 // enable torque
+#define FLAG_IMU 128
+#define FLAG_CODEURS 256
 
 #endif
 
