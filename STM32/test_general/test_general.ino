@@ -1,5 +1,7 @@
 #include <SPI.h>
 #include <time.h>
+#include <libmaple/dma.h>
+#include <libmaple/usart.h>
 #include "codeurs.h"
 #include "variables.h"
 
@@ -36,8 +38,24 @@ SPIClass SPI_2(2); //Create an instance of the SPI Class called SPI_2 that uses 
 //-----------------------------------------------------------
 #include <ODriveArduino.h>
 ODriveArduino odrive(Serial3);
-template <class T>inline Print &operator<<(Print &obj, T arg){obj.print(arg);return obj;}
-template <>inline Print &operator<<(Print &obj, float arg){obj.print(arg, 4);return obj;}
+template <class T>
+inline Print &operator<<(Print &obj, T arg)
+{
+  obj.print(arg);
+  return obj;
+}
+template <>
+inline Print &operator<<(Print &obj, float arg)
+{
+  obj.print(arg, 4);
+  return obj;
+}
+//DMA
+#define LENGHT 50
+#define dma_bufer_size2 LENGHT
+dma_tube_config tube_config;
+char dma_reg_Od[LENGHT];
+
 //-----------------------------------------------------------
 //-----------------------------------------------------------
 
@@ -145,6 +163,17 @@ void setup()
   //-------------------------ODrive------------------------------
   //-----------------------------------------------------------
   Serial3.begin(BAUD_ODRIVE);
+  USART3->regs->CR3 = USART_CR3_DMAT; //enable DMA on UART
+  DMA_Config_Buffer();
+
+  //Hardware Reset
+  pinMode(PD10, OUTPUT);
+  digitalWrite(PD10, HIGH); //No reset
+  delayMicroseconds(10);
+  digitalWrite(PD10, LOW); //reset
+  delayMicroseconds(100);
+  digitalWrite(PD10, HIGH); //No reset
+  delay(100);
 
   while (!Serial)
   {
@@ -173,6 +202,8 @@ void loop()
 
   //serialEvent4();
   //printBuffer4();
+  //ptr_wbuffer->w_flag = FLAG_WOD;
+  //  delay(10);
   //-------------------------ENTREES SPI-------------------------------
   //-----------------------------------------------------------------
   do
@@ -181,6 +212,8 @@ void loop()
     SPI_1.transferSlave(((uint8_t *)ptr_wbuffer), ((uint8_t *)ptr_rbuffer), SIZE_BUFFER); //(RX,TX,size) Transfer to the master
     ptr_rbuffer->rspi_test = ptr_wbuffer->wspi_test;                                      // Used to test data transmited = SESAME
   } while (rbuffer.rspi_test != SESAME);                                                  //block until receiving proper data
+
+  //demarrer_chrono();
 
   //-------------------------DYNAMIXEL AX-------------------------------
   //-----------------------------------------------------------
@@ -246,7 +279,7 @@ void loop()
     ptr_rbuffer->rXm2_pos = dataXm2;
     delayMicroseconds(250); //Waiting the end of the transmission
 
-    // delayMicroseconds(350);//Waiting the end of the transmission
+    //delayMicroseconds(350);//Waiting the end of the transmission
 
     /*Fonctions de reception position double*/
     //int  error = DynamixelX.syncReadPos(XM_1,(int*)ptr_rbuffer->rXm1_pos,XM_2,(int*)ptr_rbuffer->rXm2_pos); //Returns 16 bits for each motor
@@ -307,22 +340,35 @@ void loop()
 
   if (testFlag(FLAG_WOD))
   {
+    //UART3
     //read 2motors : 740us
-    odrive.SetPosition(OD_0, (float)wbuffer.wOd0_pos); //Motor 0
-    odrive.SetPosition(OD_1, (float)wbuffer.wOd1_pos); //Motor 1
+    //demarrer_chrono();
+
+    /*Standart sending*/ //Possible interferences with SPI at frequeny >100Hz
+                         //odrive.SetPosition(OD_0, wbuffer.wOd0_pos); //Motor 0
+    //odrive.SetPosition(OD_1, wbuffer.wOd1_pos); //Motor 1
+
+    /*DMA sending*/
+    sprintf(dma_reg_Od, "p 0 %3.1f 0 0 \np 1 %3.1f 0 0 \n", (wbuffer.wOd0_pos) * 1.0f, (wbuffer.wOd1_pos) * 1.0f); // Write formatted data to string
+    dma_tube_cfg(DMA1, DMA_CH2, &tube_config);                                                                     //return the error
+    dma_enable(DMA1, DMA_CH2);                                                                                     // Enable the channel and start the transfer.
+
+    // stop_chrono();
+    //Serial.print("Od0_pos : ");  Serial.println( wbuffer.wOd0_pos*1.0f,DEC);
+    // Serial.print("Od1_pos : ");  Serial.println( wbuffer.wOd1_pos*1.0f,DEC);
   }
 
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
   /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
- * getCount() returns count between 0 and 2048 (PPR) not taking in account the direction
- * Scheme: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048 
- * We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024 
- * Max upper body amplitude +-45° = +-256
- */
-
+    getCount() returns count between 0 and 2048 (PPR) not taking in account the direction
+    Scheme: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048
+    We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024
+    Max upper body amplitude +-45° = +-256
+  */
   if (testFlag(FLAG_CODEURS))
   {
+
     int count1 = Timer1.getCount(); //Read the counter register
     int count4 = Timer4.getCount();
 
@@ -340,6 +386,7 @@ void loop()
     else
       ptr_rbuffer->rCodHip1 = count4; // Normal count
   }
+
   //-------------------------Affichage----------------------------------------------
   //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
   //  Serial.print(" rAx2_pos : ");  Serial.println(rbuffer.rAx2_pos);
@@ -347,14 +394,16 @@ void loop()
   //  Serial.print("wXm1_pos : ");  Serial.println(wbuffer.wXm1_pos,DEC);
   //  Serial.print("rXmL_pos : ");  Serial.println(wbuffer.wXm2_pos,DEC);
 
-  //  Serial.print("rXmR_pos : ");  Serial.println(rbuffer.rXmR_pos,DEC);
-  //  Serial.print("rXmL_pos : ");  Serial.println(rbuffer.rXmL_pos,DEC);
+  //   Serial.print("Od0_pos : ");  Serial.println( wbuffer.wOd0_pos*1.0f,DEC);
+  //   Serial.print("Od1_pos : ");  Serial.println( wbuffer.wOd1_pos*1.0f,DEC);
 
-  /*Affichage*/
-  //  Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodRMot);
-  //  Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodRHip);
+  //  Serial.print("wXm1_pos : ");  Serial.println(wbuffer.wXm1_pos,DEC);
+  //  Serial.print("rXmL_pos : ");  Serial.println(wbuffer.wXm2_pos,DEC);
 
-  //  //stop_chrono() ;
+  //    Serial.print("Codeur1:  "); Serial.println(rbuffer.rCodHip0);
+  //    Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodHip1);
+
+  //stop_chrono() ;
 }
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------
@@ -394,6 +443,31 @@ int ImuRead(unsigned char Cs_PIN)
   highPin();
 }
 
+void DMA_Config_Buffer() // Send a buffer//TX only
+{
+  // Setup of general flags for USART1
+  tube_config.tube_src_size = DMA_SIZE_8BITS;
+  tube_config.tube_dst = &(USART3->regs->DR); // Destination of data
+  tube_config.tube_dst_size = DMA_SIZE_8BITS; // Size of the data register
+  tube_config.target_data = 0;
+  tube_config.tube_req_src = DMA_REQ_SRC_USART3_TX; // DMA request source.
+  // Setup of specifics flags depending on DMA mode whished
+  tube_config.tube_src = &dma_reg_Od; // Source of the data
+  tube_config.tube_nr_xfers = dma_bufer_size2;
+  tube_config.tube_flags = (DMA_FROM_MEM | DMA_MINC_MODE); // Read from memory to peripheral | Auto-increment memory address
+
+  dma_init(DMA1); // Initialization
+  // ! 1st transfer !
+  int error = dma_tube_cfg(DMA1, DMA_CH2, &tube_config); //Setup of the DMA
+  dma_set_priority(DMA1, DMA_CH2, DMA_PRIORITY_LOW);     // by default
+  dma_enable(DMA1, DMA_CH2);                             // Enable the channel and start the transfer.
+
+  Serial.print("error:  ");                      // return 0 if no error.
+  Serial.println(error);                         //return the error
+  Serial.print("dma_is_enabled:  ");             //return 0 if the tube is disabled, >0 if it is enabled.
+  Serial.println(dma_is_enabled(DMA1, DMA_CH2)); //return 0 if the tube is disabled, >0 if it is enabled.
+}
+
 void displayVar()
 {
   //    Serial.println("\n ------Reception Master---------");
@@ -405,20 +479,30 @@ void displayVar()
   //    Serial.print(" wOd1_pos ");  Serial.println(wbuffer.wOd1_pos);
 }
 
+int fonction_MSB(int octet)
+{
+  //decalage et suppression bits de poids faibles
+  int msb = (octet >> 8);
+  return msb;
+}
+
+int fonction_LSB(int octet)
+{
+  //Masque de suppression bits de poids forts
+  int lsb = (octet & 0x00FF);
+  return lsb;
+}
+
+unsigned int count(unsigned int i)
+{
+  unsigned int ret = 1;
+  while (i /= 10)
+    ret++;
+  return ret;
+}
+
 //------------------------------inutilisé----------------------------------------------
 //---------------------------------------------------------------
-//int fonction_MSB (int octet) {
-//  //decalage et suppression bits de poids faibles
-//  int msb = (octet >> 8);
-//  return msb;
-//}
-//
-//int fonction_LSB (int octet) {
-//  //Masque de suppression bits de poids forts
-//  int lsb = (octet & 0x00FF);
-//  return lsb;
-//}
-//
 //int fonction_concat (int octet_MSB, int octet_LSB ) {
 //  int octet_concat = (octet_MSB << 8 | octet_LSB); //Concatenation Right
 //  return octet_concat;
