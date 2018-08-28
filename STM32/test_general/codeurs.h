@@ -67,7 +67,7 @@ void setupCodeurs() {
 //configure Timer as encoder
   Timer1.setMode(0, TIMER_ENCODER); //set mode, the channel is not used when in this mode. 
   Timer1.pause(); //stop... 
-  Timer1.setPrescaleFactor(4); //normal for encoder to have the lowest or no prescaler. 
+  Timer1.setPrescaleFactor(1); //normal for encoder to have the lowest or no prescaler. 
   Timer1.setOverflow(PPR);    //use this to match the number of pulse per revolution of the encoder. Most industrial use 1024 single channel steps. 
   Timer1.setCount(0);          //reset the counter. 
   Timer1.setEdgeCounting(TIMER_SMCR_SMS_ENCODER3); //or Timer_SMCR_SMS_ENCODER1 or Timer_SMCR_SMS_ENCODER2. This uses both channels to count and ascertain direction. 
@@ -76,7 +76,7 @@ void setupCodeurs() {
 
   Timer2.setMode(0, TIMER_ENCODER); //set mode, the channel is not used when in this mode. 
   Timer2.pause(); //stop... 
-  Timer2.setPrescaleFactor(4); //normal for encoder to have the lowest or no prescaler. 
+  Timer2.setPrescaleFactor(1); //normal for encoder to have the lowest or no prescaler. 
   Timer2.setOverflow(PPR);    //use this to match the number of pulse per revolution of the encoder. Most industrial use 1024 single channel steps. 
   Timer2.setCount(0);          //reset the counter. 
   Timer2.setEdgeCounting(TIMER_SMCR_SMS_ENCODER3); //or Timer_SMCR_SMS_ENCODER1 or Timer_SMCR_SMS_ENCODER2. This uses both channels to count and ascertain direction. 
@@ -85,7 +85,7 @@ void setupCodeurs() {
 
   Timer4.setMode(0, TIMER_ENCODER); //set mode, the channel is not used when in this mode. 
   Timer4.pause(); //stop... 
-  Timer4.setPrescaleFactor(4); //normal for encoder to have the lowest or no prescaler. 
+  Timer4.setPrescaleFactor(1); //normal for encoder to have the lowest or no prescaler. 
   Timer4.setOverflow(PPR);    //use this to match the number of pulse per revolution of the encoder. Most industrial use 1024 single channel steps. 
   Timer4.setCount(0);          //reset the counter. 
   Timer4.setEdgeCounting(TIMER_SMCR_SMS_ENCODER3); //or Timer_SMCR_SMS_ENCODER1 or Timer_SMCR_SMS_ENCODER2. This uses both channels to count and ascertain direction. 
@@ -94,7 +94,7 @@ void setupCodeurs() {
 
   Timer8.setMode(0, TIMER_ENCODER); //set mode, the channel is not used when in this mode. 
   Timer8.pause(); //stop... 
-  Timer8.setPrescaleFactor(4); //normal for encoder to have the lowest or no prescaler. 
+  Timer8.setPrescaleFactor(1); //normal for encoder to have the lowest or no prescaler. 
   Timer8.setOverflow(PPR);    //use this to match the number of pulse per revolution of the encoder. Most industrial use 1024 single channel steps. 
   Timer8.setCount(0);          //reset the counter. 
   Timer8.setEdgeCounting(TIMER_SMCR_SMS_ENCODER3); //or Timer_SMCR_SMS_ENCODER1 or Timer_SMCR_SMS_ENCODER2. This uses both channels to count and ascertain direction. 
