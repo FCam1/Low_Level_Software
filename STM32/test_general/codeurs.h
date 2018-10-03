@@ -30,7 +30,7 @@
 */
 
 //Pulses per revolution
-#define PPR   2048
+#define PPR  4096
 
 void setupCodeurs() {
 

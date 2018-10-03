@@ -32,7 +32,7 @@
 #define BAUD_XM 1000000
 #define BAUD_ODRIVE 115200
 //------------------SPI --------------------
-#define SIZE_BUFFER 44
+#define SIZE_BUFFER 50 //2x size of the struct
 #define SESAME 36055
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX PG2
@@ -92,7 +92,7 @@ struct TrameWrite
   uint16_t wAx2_pos;
   //XM
   uint16_t wXm1_pos;
-  uint16_t wXm2_pos;
+  uint16_t wXm2_pos; //8
 
   //Inutilisé
   uint16_t a;
@@ -109,7 +109,10 @@ struct TrameWrite
   int16_t n;
   int16_t o;
   int16_t p;
-} wbuffer;
+  int16_t q;
+  int16_t r;
+  int16_t s;//17
+} wbuffer;//25
 
 struct TrameRead
 { // Variables "read" to send over SPI from the slave
@@ -126,11 +129,11 @@ struct TrameRead
   uint16_t rXm1_pos;
   uint16_t rXm2_pos;
   uint16_t rXm1_cur;
-  uint16_t rXm2_cur;
+  uint16_t rXm2_cur;//9
   //IMU
   int16_t rate[3];
   int16_t acc[3];
-  int16_t mag[3];
+  int16_t mag[3];//9
 
   //Codeurs
   int16_t rCodHip0;
@@ -138,9 +141,15 @@ struct TrameRead
   int16_t rCodMot0;
   int16_t rCodMot1;
 
-  //attention la deniere variable peut ne pas être stable
+  //feed back 
+  int16_t wOd0_pos_fb;
+  int16_t wOd1_pos_fb;
 
-} rbuffer;
+  int16_t looptime;//7
+
+
+} rbuffer;//25
+
 
 //------------------Flags--------------------
 #define NO_FLAG 0
@@ -155,4 +164,3 @@ struct TrameRead
 #define FLAG_CODEURS 256
 
 #endif
-

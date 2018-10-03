@@ -38,8 +38,7 @@ SPIClass SPI_2(2); //Create an instance of the SPI Class called SPI_2 that uses 
 //-----------------------------------------------------------
 #include <ODriveArduino.h>
 ODriveArduino odrive(Serial3);
-template <class T>
-inline Print &operator<<(Print &obj, T arg)
+template <class T>  inline Print &operator<<(Print &obj, T arg)
 {
   obj.print(arg);
   return obj;
@@ -51,7 +50,7 @@ inline Print &operator<<(Print &obj, float arg)
   return obj;
 }
 //DMA
-#define LENGHT 50
+#define LENGHT  48 //50
 #define dma_bufer_size2 LENGHT
 dma_tube_config tube_config;
 char dma_reg_Od[LENGHT];
@@ -166,13 +165,19 @@ void setup()
   USART3->regs->CR3 = USART_CR3_DMAT; //enable DMA on UART
   DMA_Config_Buffer();
 
-  //Hardware Reset
+  
+////  Hardware O/I configuration
+  //Output for Odrive
   pinMode(PD10, OUTPUT);
-  digitalWrite(PD10, HIGH); //No reset
-  delayMicroseconds(10);
-  digitalWrite(PD10, LOW); //reset
-  delayMicroseconds(100);
-  digitalWrite(PD10, HIGH); //No reset
+  digitalWrite(PD10, HIGH);//No reset after an STM32 reset
+  // Reset button
+  pinMode(PF4, INPUT);
+  pinMode(PF6, OUTPUT);
+  digitalWrite(PF6, LOW); //Reset
+  pinMode(PF2, OUTPUT);
+  digitalWrite(PF6, HIGH); //No reset
+
+  ODTestReset();//Function to test the activation of the rest button
   delay(100);
 
   while (!Serial)
@@ -189,7 +194,7 @@ void setup()
   {
   }
   Serial.println("Codeurs OK !");
-  Serial.setTimeout(10);
+  Serial.setTimeout(10);;;;
 }
 
 void loop()
@@ -213,7 +218,10 @@ void loop()
     ptr_rbuffer->rspi_test = ptr_wbuffer->wspi_test;                                      // Used to test data transmited = SESAME
   } while (rbuffer.rspi_test != SESAME);                                                  //block until receiving proper data
 
-  //demarrer_chrono();
+  //-------------------------MESURE TEMPS BOUCLE-------------------------------
+  //---------------------------------------------------------
+  //long int top_chrono;
+  //top_chrono = millis();//mesure le temps ecoule en milli secondes depuis le demarrage du programme
 
   //-------------------------DYNAMIXEL AX-------------------------------
   //-----------------------------------------------------------
@@ -345,24 +353,49 @@ void loop()
     //demarrer_chrono();
 
     /*Standart sending*/ //Possible interferences with SPI at frequeny >100Hz
-                         //odrive.SetPosition(OD_0, wbuffer.wOd0_pos); //Motor 0
-    //odrive.SetPosition(OD_1, wbuffer.wOd1_pos); //Motor 1
+//    odrive.SetPosition(OD_0, wbuffer.wOd0_pos); //Motor 0
+//    odrive.SetPosition(OD_1, wbuffer.wOd1_pos); //Motor 1
+
+
+   for (int i=0;i<=LENGHT;i++)
+ {
+  dma_reg_Od [i]=0;
+ }
 
     /*DMA sending*/
-    sprintf(dma_reg_Od, "p 0 %3.1f 0 0 \np 1 %3.1f 0 0 \n", (wbuffer.wOd0_pos) * 1.0f, (wbuffer.wOd1_pos) * 1.0f); // Write formatted data to string
+//    int a =sprintf(dma_reg_Od, "p 0 %3.1f 0 0 \np 1 %3.1f 0 0 \n", (wbuffer.wOd0_pos) * 1.0f, (wbuffer.wOd1_pos) * 1.0f); // BUG : only motor1 turns 
+//    dma_tube_cfg(DMA1, DMA_CH2, &tube_config);                                                                     //return the error
+//    dma_enable(DMA1, DMA_CH2);                                                                                     // Enable the channel and start the transfer
+
+    int a =sprintf(dma_reg_Od, "p 0 %3.1f 0 0 \np 1 %3.1f 0 0 \np 0 %3.1f 0 0 \n", (wbuffer.wOd0_pos) * 1.0f, (wbuffer.wOd1_pos) * 1.0f,(wbuffer.wOd0_pos) * 1.0f); // Write formatted data to string
     dma_tube_cfg(DMA1, DMA_CH2, &tube_config);                                                                     //return the error
-    dma_enable(DMA1, DMA_CH2);                                                                                     // Enable the channel and start the transfer.
+    dma_enable(DMA1, DMA_CH2);                                                                                     // Enable the channel and start the transfer
+
+   delay(15); //prevent Odrive freeze
+
+
+
+// for (i=0;i<=LENGHT;i++)
+// {
+//  Serial.print(i); Serial.print(": ");Serial.println( dma_reg_Od [i]);
+//
+// }
+//   delay(1);
+//    Serial.println("--------------------------------");
 
     // stop_chrono();
     //Serial.print("Od0_pos : ");  Serial.println( wbuffer.wOd0_pos*1.0f,DEC);
     // Serial.print("Od1_pos : ");  Serial.println( wbuffer.wOd1_pos*1.0f,DEC);
+    //Serial.print("return sprintf: ");  Serial.println( a);
+
+ 
   }
 
   //-------------------------Codeurs------------------------------
   //-----------------------------------------------------------
   /*Starting from 0 : the counter upcount BUT downcount from the setOverflow value (PPR)
     getCount() returns count between 0 and 2048 (PPR) not taking in account the direction
-    Scheme: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048
+    Scheme with PPR=2048: 0...2044_2045_2046_2047_2048_0_1_2_3_4_5...2048
     We want a symmetrical upcount and downcount from 0 following this scheme: -1025...-5_-4_-3_-2_-1_0_1_2_3_4_5..1024
     Max upper body amplitude +-45° = +-256
   */
@@ -372,20 +405,29 @@ void loop()
     int count1 = Timer1.getCount(); //Read the counter register
     int count4 = Timer4.getCount();
 
-    if (count1 > 1024) //& Timer1.getDirection() == 1) // Symmetrical count
+    if (count1 > 2096) //& Timer1.getDirection() == 1) // Symmetrical count
     {
-      ptr_rbuffer->rCodHip0 = -2049 + count1; // Converted to negative
+      ptr_rbuffer->rCodHip0 = -4097 + count1; // Converted to negative
     }
     else
       ptr_rbuffer->rCodHip0 = count1; // Normal count
 
-    if (count4 > 1024) //& Timer4.getDirection() == 1)// Symmetrical count
+    if (count4 > 2096) //& Timer4.getDirection() == 1)// Symmetrical count
     {
-      ptr_rbuffer->rCodHip1 = -2049 + count4; // Converted to negative
+      ptr_rbuffer->rCodHip1 = -4097+ count4; // Converted to negative
     }
     else
       ptr_rbuffer->rCodHip1 = count4; // Normal count
   }
+
+    // Return the current OD command 
+  rbuffer.wOd0_pos_fb = wbuffer.wOd0_pos;
+  rbuffer.wOd1_pos_fb = wbuffer.wOd1_pos;
+  
+  // Serial.print(" rbuffer.wOd0_pos_fb  : ");  Serial.println(rbuffer.wOd0_pos_fb );
+   //Serial.print(" rbuffer.wOd1_pos_fb : ");  Serial.println(rbuffer.wOd1_pos_fb );
+
+  ODTestReset();
 
   //-------------------------Affichage----------------------------------------------
   //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);
@@ -404,6 +446,15 @@ void loop()
   //    Serial.print("Codeur2:  "); Serial.println(rbuffer.rCodHip1);
 
   //stop_chrono() ;
+
+
+  //-------------------------MESURE TEMPS BOUCLE-------------------------------
+  //---------------------------------------------------------
+  //long int arret_chrono = millis();
+  //rbuffer.looptime = (arret_chrono - top_chrono);//retour en ms
+
+
+
 }
 
 ////----------------------------------------------SPI IMU BRUT --------------------------------------------------
@@ -501,6 +552,22 @@ unsigned int count(unsigned int i)
   return ret;
 }
 
+void ODTestReset()
+{
+////  ODrive and encoder Reset
+//The goal is to synchronize the 0 of OD and the 0 of the hips encodeurs
+//The position of the OD motors before a reset is memorized by OD and becomes the new 0
+if (digitalRead (PF4)==0)// No Reset required
+  {
+  digitalWrite(PD10, HIGH); // No reset
+ }
+
+if (digitalRead (PF4)==1) // Reset required
+{
+  setupCodeurs();// reset codeur
+  digitalWrite(PD10, LOW); // reset OD
+}
+}
 //------------------------------inutilisé----------------------------------------------
 //---------------------------------------------------------------
 //int fonction_concat (int octet_MSB, int octet_LSB ) {
