@@ -412,12 +412,13 @@ void loop()
     else
       ptr_rbuffer->rCodHip0 = count1; // Normal count
 
+      // Ici on multiplie par -1 pour être en accord avec le sens OD
     if (count4 > 2096) //& Timer4.getDirection() == 1)// Symmetrical count
     {
-      ptr_rbuffer->rCodHip1 = -4097+ count4; // Converted to negative
+      ptr_rbuffer->rCodHip1 = (-4097+ count4)*(-1); // Converted to negative
     }
     else
-      ptr_rbuffer->rCodHip1 = count4; // Normal count
+      ptr_rbuffer->rCodHip1 = count4*(-1); // Normal count
   }
 
     // Return the current OD command 
