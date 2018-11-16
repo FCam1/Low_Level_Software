@@ -32,7 +32,7 @@
 #define BAUD_XM 1000000
 #define BAUD_ODRIVE 115200
 //------------------SPI --------------------
-#define SIZE_BUFFER 50 //2x size of the struct
+#define SIZE_BUFFER 56 //2x size of the struct
 #define SESAME 36055
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX PG2
@@ -95,10 +95,11 @@ struct TrameWrite
   uint16_t wXm2_pos; //8
 
   //Inutilisé
-  uint16_t a;
-  uint16_t b;
-  uint16_t c;
-  uint16_t d;
+  int16_t a[3];
+  int16_t b[3];
+  int16_t c[3];
+  int16_t d[3];//12
+  
   uint16_t e;
   uint16_t f;
   uint16_t g;
@@ -107,12 +108,7 @@ struct TrameWrite
   uint16_t k;
   int16_t m;
   int16_t n;
-  int16_t o;
-  int16_t p;
-  int16_t q;
-  int16_t r;
-  int16_t s;//17
-} wbuffer;//25
+} wbuffer;//28
 
 struct TrameRead
 { // Variables "read" to send over SPI from the slave
@@ -133,7 +129,8 @@ struct TrameRead
   //IMU
   int16_t rate[3];
   int16_t acc[3];
-  int16_t mag[3];//9
+  int16_t mag[3];
+  int16_t rpy_angles[3];//in radians //12
 
   //Codeurs
   int16_t rCodHip0;
@@ -148,7 +145,7 @@ struct TrameRead
   int16_t looptime;//7
 
 
-} rbuffer;//25
+} rbuffer;//28
 
 
 //------------------Flags--------------------
