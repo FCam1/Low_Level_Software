@@ -4,6 +4,7 @@
 #include <libmaple/usart.h>
 #include "codeurs.h"
 #include "variables.h"
+#include <MadgwickAHRS.h>
 
 //macro
 #define lowPin() (gpio_write_bit(GPIOB, 12, 0))  //PB12 LOW
@@ -54,7 +55,13 @@ inline Print &operator<<(Print &obj, float arg)
 #define dma_bufer_size2 LENGHT
 dma_tube_config tube_config;
 char dma_reg_Od[LENGHT];
-
+//-----------------------------------------------------------
+//----------------------IMU FILTER----------------------------------
+//-----------------------------------------------------------
+Madgwick IMU;
+//Pointer for imu scaled data
+struct rate_scaled *ptr_rate = &ratescaled;
+struct acc_scaled *ptr_acc = &accscaled;
 //-----------------------------------------------------------
 //-----------------------------------------------------------
 
@@ -194,7 +201,10 @@ void setup()
   {
   }
   Serial.println("Codeurs OK !");
-  Serial.setTimeout(10);;;;
+  Serial.setTimeout(10);
+  //-----------------------IMU FILTER----------------------------
+  //---------------------------------------------------------------------
+  IMU.begin(100);//(Hz) frequency of the loop (drived by the upsquared board) 
 }
 
 void loop()
@@ -317,17 +327,37 @@ void loop()
 
   //-------------------------IMU-------------------------------
   //-----------------------------------------------------------
-
   if (testFlag(FLAG_IMU))
   {
     ImuRead(CS_PIN); // ask,read and print IMU data register
+   /* Mise a  l'echelle DATA IMU */
+    ptr_rate->rXrate_scaled = (float)rbuffer.rate[0] / FACTOR_RATE;
+    ptr_rate->rYrate_scaled = (float)rbuffer.rate[1] / FACTOR_RATE;
+    ptr_rate->rZrate_scaled = (float)rbuffer.rate[2] / FACTOR_RATE;
+    ptr_acc->rXacc_scaled = (float)rbuffer.acc[0] / FACTOR_ACC;
+    ptr_acc->rYacc_scaled = (float)rbuffer.acc[1] / FACTOR_ACC;
+    ptr_acc->rZacc_scaled = (float)rbuffer.acc[2] / FACTOR_ACC;
+    /* Compute DATA IMU */
+    IMU.updateIMU(ptr_rate->rXrate_scaled , ptr_rate->rYrate_scaled , ptr_rate->rZrate_scaled , ptr_acc->rXacc_scaled , ptr_acc->rYacc_scaled , ptr_acc->rZacc_scaled);
+    /* Save the result in Radians */
+    rbuffer.rpy_angles[0]=IMU.getRollRadians();
+    rbuffer.rpy_angles[1]=IMU.getPitchRadians();
+    rbuffer.rpy_angles[2]=IMU.getYawRadians(); 
+    //Serial.println(rbuffer.rpy_angles[0]);
+    //Serial.println(rbuffer.rpy_angles[1]);
+    //Serial.println(rbuffer.rpy_angles[2]);
   }
-
+   
   //-------------------------ODrive------------------------------
   //-----------------------------------------------------------
   //write 2motors : 742us
   //read 2motors : 8467us
   //r/w 2motors : 9611 us -> allow to work at 100Hz
+  long OD_freq;
+  OD_freq++;
+  if (OD_freq %50==0)// 50HZ
+  {
+  
   if (testFlag(FLAG_ROD))
   {
     Serial3 << "r axis" << OD_0 << ".encoder.pos_estimate\n";
@@ -373,8 +403,6 @@ void loop()
 
    delay(15); //prevent Odrive freeze
 
-
-
 // for (i=0;i<=LENGHT;i++)
 // {
 //  Serial.print(i); Serial.print(": ");Serial.println( dma_reg_Od [i]);
@@ -387,8 +415,7 @@ void loop()
     //Serial.print("Od0_pos : ");  Serial.println( wbuffer.wOd0_pos*1.0f,DEC);
     // Serial.print("Od1_pos : ");  Serial.println( wbuffer.wOd1_pos*1.0f,DEC);
     //Serial.print("return sprintf: ");  Serial.println( a);
-
- 
+  }
   }
 
   //-------------------------Codeurs------------------------------
@@ -429,6 +456,7 @@ void loop()
    //Serial.print(" rbuffer.wOd1_pos_fb : ");  Serial.println(rbuffer.wOd1_pos_fb );
 
   ODTestReset();
+
 
   //-------------------------Affichage----------------------------------------------
   //  Serial.print(" rAx1_pos : ");  Serial.println(rbuffer.rAx1_pos);

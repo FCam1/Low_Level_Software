@@ -32,7 +32,7 @@
 #define BAUD_XM 1000000
 #define BAUD_ODRIVE 115200
 //------------------SPI --------------------
-#define SIZE_BUFFER 56 //2x size of the struct
+#define SIZE_BUFFER 62 //2x size of the struct
 #define SESAME 36055
 //------------------Definition des Pins --------------------
 #define PIN_DATA_CTRL_AX PG2
@@ -77,13 +77,11 @@ struct mag_scaled
 uint8_t DIAGNOSTIC_STATUS;
 
 //------------------structures--------------------
-
 struct TrameWrite
 { // Variables "write" to send over SPI from the master
   //Outils
   uint16_t wspi_test;
   uint16_t w_flag;
-
   //Odrive
   int16_t wOd0_pos;
   int16_t wOd1_pos;
@@ -93,13 +91,7 @@ struct TrameWrite
   //XM
   uint16_t wXm1_pos;
   uint16_t wXm2_pos; //8
-
   //Inutilisé
-  int16_t a[3];
-  int16_t b[3];
-  int16_t c[3];
-  int16_t d[3];//12
-  
   uint16_t e;
   uint16_t f;
   uint16_t g;
@@ -107,14 +99,18 @@ struct TrameWrite
   uint16_t i;
   uint16_t k;
   int16_t m;
-  int16_t n;
-} wbuffer;//28
+  int16_t n;//8
+  int16_t a[3];
+  int16_t b[3];
+  int16_t c[3];//9
+  float d[3];//6
+
+} wbuffer;//31
 
 struct TrameRead
 { // Variables "read" to send over SPI from the slave
   //Outils
   uint16_t rspi_test;
-
   //Odrive
   uint16_t rOd0_pos; //read Odrive Right
   uint16_t rOd1_pos;
@@ -126,26 +122,22 @@ struct TrameRead
   uint16_t rXm2_pos;
   uint16_t rXm1_cur;
   uint16_t rXm2_cur;//9
-  //IMU
-  int16_t rate[3];
-  int16_t acc[3];
-  int16_t mag[3];
-  int16_t rpy_angles[3];//in radians //12
-
   //Codeurs
   int16_t rCodHip0;
   int16_t rCodHip1;
   int16_t rCodMot0;
   int16_t rCodMot1;
-
   //feed back 
   int16_t wOd0_pos_fb;
   int16_t wOd1_pos_fb;
-
   int16_t looptime;//7
+  //IMU
+  int16_t rate[3];
+  int16_t acc[3];
+  int16_t mag[3];//9
+  float rpy_angles[3];//6 (1 word of 32 bits counts for 2 because 1 word of 16bits counts for 1)
 
-
-} rbuffer;//28
+} rbuffer;//31
 
 
 //------------------Flags--------------------
